@@ -1,0 +1,70 @@
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: agentic_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    environment:
+      POSTGRES_HOST: postgres
+      RABBITMQ_HOST: rabbitmq
+      OLLAMA_HOST: http://host.docker.internal:11434
+      OLLAMA_MODEL: llama3.2
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - rabbitmq
+    volumes:
+      - ./apps/backend:/app
+
+  frontend:
+    build:
+      context: ./apps/frontend/host
+      dockerfile: Dockerfile
+    ports:
+      - "4200:4200"
+    depends_on:
+      - backend
+    environment:
+      - NX_API_URL=http://backend:8000
+
+  mfe-chat:
+    build:
+      context: ./apps/frontend/mfe-chat
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    depends_on:
+      - backend
+
+  mfe-dashboard:
+    build:
+      context: ./apps/frontend/mfe-dashboard
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3002"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "mfe-chat/*": ["apps/frontend/mfe-chat/src/*"],
+      "mfe-dashboard/*": ["apps/frontend/mfe-dashboard/src/*"],
+      "shared/*": ["apps/frontend/shared/src/*"]
+    }
+  },
+  "include": ["apps/**/*"],
+  "exclude": ["node_modules"]
+}

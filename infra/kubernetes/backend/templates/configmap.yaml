@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+data:
+  POSTGRES_HOST: "postgres-service"
+  RABBITMQ_HOST: "rabbitmq-service"
