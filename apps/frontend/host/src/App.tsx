@@ -4,8 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoginPage from './pages/LoginPage';
 
-const ChatModule = lazy(() => import('mfe-chat/Module'));
-const DashboardModule = lazy(() => import('mfe-dashboard/Module'));
+const ChatModule = lazy(() => import('mfeChat/Module'));
+const DashboardModule = lazy(() => import('mfeDashboard/Module'));
 
 const queryClient = new QueryClient();
 
