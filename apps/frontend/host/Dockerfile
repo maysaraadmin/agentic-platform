@@ -1,5 +1,10 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
+ARG MFE_CHAT_URL=http://localhost:3001/remoteEntry.js
+ARG MFE_DASHBOARD_URL=http://localhost:3002/remoteEntry.js
+ENV NODE_ENV=production
+ENV MFE_CHAT_URL=$MFE_CHAT_URL
+ENV MFE_DASHBOARD_URL=$MFE_DASHBOARD_URL
 COPY package.json package-lock.json* ./
 RUN npm ci --silent
 COPY . .

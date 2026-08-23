@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, update, delete
 from src.core.database import get_db
 from src.models.models import Document
+from src.services.ingestion import ingest_file
 
 router = APIRouter()
 
@@ -20,6 +21,11 @@ class DocumentStatsResponse(BaseModel):
     total: int
     last_update: str | None
 
+class UploadResponse(BaseModel):
+    filename: str
+    chunks_ingested: int
+    message: str
+
 @router.post("/", response_model=DocumentResponse)
 async def create_document(request: DocumentRequest, db: AsyncSession = Depends(get_db)):
     doc = Document(title=request.title, content=request.content)
@@ -27,6 +33,35 @@ async def create_document(request: DocumentRequest, db: AsyncSession = Depends(g
     await db.commit()
     await db.refresh(doc)
     return DocumentResponse(id=doc.id, title=doc.title, content=doc.content)
+
+@router.post("/upload", response_model=UploadResponse)
+async def upload_document(file: UploadFile = File(...), db: AsyncSession = Depends(get_db)):
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided")
+    
+    allowed_extensions = {".txt", ".md", ".json", ".csv"}
+    _, ext = os.path.splitext(file.filename)
+    if ext.lower() not in allowed_extensions:
+        raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}. Allowed: {', '.join(allowed_extensions)}")
+    
+    content = await file.read()
+    text = content.decode("utf-8", errors="replace")
+    
+    if not text.strip():
+        raise HTTPException(status_code=400, detail="File is empty")
+    
+    doc = Document(title=file.filename, content=text[:10000])
+    db.add(doc)
+    await db.commit()
+    await db.refresh(doc)
+    
+    chunks = await ingest_file(file.filename, text, metadata={"document_id": doc.id})
+    
+    return UploadResponse(
+        filename=file.filename,
+        chunks_ingested=chunks,
+        message=f"Successfully ingested {chunks} chunks into vector store"
+    )
 
 @router.get("/{document_id}", response_model=DocumentResponse)
 async def get_document(document_id: int, db: AsyncSession = Depends(get_db)):

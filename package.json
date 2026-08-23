@@ -10,9 +10,12 @@
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "backend:start": "cd apps/backend && uvicorn src.main:app --reload",
-    "backend:test": "cd apps/backend && pytest"
+    "backend:test": "cd apps/backend && pytest",
+    "e2e": "playwright test",
+    "e2e:install": "playwright install --with-deps"
   },
   "devDependencies": {
+    "@playwright/test": "^1.45.0",
     "@testing-library/react": "^16.0.0"
   },
   "private": true

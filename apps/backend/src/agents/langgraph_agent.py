@@ -13,7 +13,6 @@ import os
 class AgentState(TypedDict):
     messages: Annotated[List[dict], operator.add]
     context: str
-    next_step: str
 
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
@@ -53,7 +52,6 @@ async def retrieve_node(state: AgentState) -> AgentState:
     docs = await asyncio.to_thread(vectorstore.similarity_search, query, k=3)
     context = "\n".join([doc.page_content for doc in docs])
     state["context"] = context
-    state["next_step"] = "generate"
     return state
 
 async def generate_node(state: AgentState) -> AgentState:
@@ -65,21 +63,13 @@ async def generate_node(state: AgentState) -> AgentState:
     Assistant:"""
     response = await llm.ainvoke(prompt)
     state["messages"].append({"role": "assistant", "content": response.content})
-    state["next_step"] = "end"
     return state
-
-def should_continue(state: AgentState) -> str:
-    """Determine the next step in the graph."""
-    if state["next_step"] == "generate":
-        return "generate"
-    else:
-        return END
 
 workflow = StateGraph(AgentState)
 workflow.add_node("retrieve", retrieve_node)
 workflow.add_node("generate", generate_node)
 workflow.set_entry_point("retrieve")
 workflow.add_edge("retrieve", "generate")
-workflow.add_conditional_edges("generate", should_continue)
+workflow.add_edge("generate", END)
 
 agent_graph = workflow.compile()
