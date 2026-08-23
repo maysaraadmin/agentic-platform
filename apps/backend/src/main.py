@@ -6,7 +6,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 import logging
 import os
 
-from src.api import agent, document, health, conversations
+from src.api import agent, document, health, conversations, auth
 from src.core.database import engine, Base
 from src.core.mcp_server import mcp_app
 from src.core.auth import get_current_active_user
@@ -53,6 +53,7 @@ app.add_middleware(
 )
 
 app.include_router(health.router, tags=["Health"])
+app.include_router(auth.router, prefix="/auth", tags=["Auth"])
 app.include_router(agent.router, prefix="/api/v1/agents", tags=["Agents"], dependencies=[Depends(get_current_active_user)])
 app.include_router(document.router, prefix="/api/v1/documents", tags=["Documents"], dependencies=[Depends(get_current_active_user)])
 app.include_router(conversations.router, prefix="/api/v1/conversations", tags=["Conversations"], dependencies=[Depends(get_current_active_user)])

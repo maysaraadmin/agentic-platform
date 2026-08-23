@@ -6,15 +6,15 @@ from src.core.rate_limit import limiter
 from src.agents.langgraph_agent import agent_graph, AgentState
 from src.core.a2a_agent import OrchestratorAgent
 from src.services.rabbitmq import rabbitmq_service
+from src.models.models import AgentLog
 from starlette.responses import StreamingResponse
 import json
-import asyncio
 
 router = APIRouter()
 orchestrator = OrchestratorAgent()
 
 class AgentRequest(BaseModel):
-    query: str
+    query: str = ""
     agent_type: str = "general"
     messages: list[dict] | None = None
 
@@ -44,6 +44,14 @@ async def invoke_agent(request: Request, agent_request: AgentRequest, db: AsyncS
         final_state = await agent_graph.ainvoke(initial_state)
         response = final_state["messages"][-1]["content"]
         context = final_state.get("context", "")
+        agent_log = AgentLog(
+            agent_type=agent_request.agent_type,
+            query=query,
+            response=response,
+            user_id="current-user",
+        )
+        db.add(agent_log)
+        await db.commit()
         return AgentResponse(response=response, context=context)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -61,13 +69,37 @@ async def stream_agent(request: Request, agent_request: AgentRequest, db: AsyncS
             "context": "",
             "next_step": "start"
         }
+        seen_chunks = []
+        full_response = ""
         try:
-            async for chunk in agent_graph.astream(initial_state):
-                for node_name, node_state in chunk.items():
-                    messages = node_state.get("messages", [])
-                    if messages and messages[-1].get("role") == "assistant":
-                        yield f"data: {json.dumps({'chunk': messages[-1].get('content', '')})}\n\n"
+            if hasattr(agent_graph, "astream_events"):
+                async for event in agent_graph.astream_events(initial_state, version="v1"):
+                    kind = event.get("event")
+                    if kind == "on_chat_model_stream":
+                        token = event.get("data", {}).get("chunk", "")
+                        if token and (not seen_chunks or token != seen_chunks[-1]):
+                            seen_chunks.append(token)
+                            full_response += token
+                            yield f"data: {json.dumps({'chunk': token})}\n\n"
+            else:
+                async for chunk in agent_graph.astream(initial_state):
+                    for node_name, node_state in chunk.items():
+                        messages = node_state.get("messages", [])
+                        if messages and messages[-1].get("role") == "assistant":
+                            content = messages[-1].get("content", "")
+                            if content and (not seen_chunks or content != seen_chunks[-1]):
+                                seen_chunks.append(content)
+                                full_response += content
+                                yield f"data: {json.dumps({'chunk': content})}\n\n"
             yield f"data: {json.dumps({'done': True})}\n\n"
+            agent_log = AgentLog(
+                agent_type=agent_request.agent_type,
+                query=query,
+                response=full_response,
+                user_id="current-user",
+            )
+            db.add(agent_log)
+            await db.commit()
         except Exception as e:
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
 

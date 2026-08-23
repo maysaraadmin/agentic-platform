@@ -40,10 +40,13 @@ class RabbitMQService:
         if not self.channel:
             await self.connect()
         queue = await self.channel.declare_queue(queue_name, durable=True)
-        async with queue.iterator() as queue_iter:
-            async for message in queue_iter:
-                async with message.process():
-                    await callback(json.loads(message.body.decode()))
+        async for message in queue.iterator():
+            try:
+                await callback(json.loads(message.body.decode()))
+                await message.ack()
+            except Exception as exc:
+                logger.error("Message processing failed: %s", exc)
+                await message.nack(requeue=False)
 
     async def close(self):
         if self.connection:

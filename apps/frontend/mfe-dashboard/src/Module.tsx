@@ -1,18 +1,23 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
 import StatusCard from './components/StatusCard';
 import AgentHealth from './components/AgentHealth';
 import DocumentStats from './components/DocumentStats';
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_URL = process.env.NX_API_URL || 'http://localhost:8000';
+
+function getAuthHeaders(): Record<string, string> {
+  const token = localStorage.getItem('auth_token');
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
 
 const DashboardModule: React.FC = () => {
-  const { data: health, isLoading } = useQuery({
-    queryKey: ['health'],
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ['dashboard'],
     queryFn: async () => {
-      const response = await axios.get(`${API_BASE}/health`);
-      return response.data;
+      const response = await fetch(`${API_URL}/health/dashboard`, { headers: getAuthHeaders() });
+      if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+      return response.json();
     },
   });
 
@@ -28,16 +33,17 @@ const DashboardModule: React.FC = () => {
       >
         <StatusCard
           title="System Status"
-          status={health?.status || 'Unknown'}
+          status={stats?.system_status || 'Unknown'}
           isLoading={isLoading}
         />
         <AgentHealth
-          agents={[
-            { name: 'LangGraph', active: true },
-            { name: 'A2A Orchestrator', active: true },
-          ]}
+          agents={stats?.agents || []}
+          isLoading={isLoading}
         />
-        <DocumentStats totalIndexed={1234} lastUpdate="2026-08-18" />
+        <DocumentStats
+          totalIndexed={stats?.documents_total || 0}
+          lastUpdate={stats?.documents_last_update || 'Never'}
+        />
       </div>
     </div>
   );

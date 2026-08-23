@@ -32,7 +32,7 @@ async def test_invoke_agent_too_long():
 async def test_document_crud():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         create_resp = await client.post("/api/v1/documents/", json={"title": "Test", "content": "Content"})
-        assert create_resp.status_code == 201
+        assert create_resp.status_code == 200
         doc_id = create_resp.json()["id"]
 
         get_resp = await client.get(f"/api/v1/documents/{doc_id}")

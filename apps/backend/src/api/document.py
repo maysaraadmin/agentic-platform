@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete
+from sqlalchemy import select, func, update, delete
 from src.core.database import get_db
 from src.models.models import Document
 
@@ -15,6 +15,10 @@ class DocumentResponse(BaseModel):
     id: int
     title: str
     content: str
+
+class DocumentStatsResponse(BaseModel):
+    total: int
+    last_update: str | None
 
 @router.post("/", response_model=DocumentResponse)
 async def create_document(request: DocumentRequest, db: AsyncSession = Depends(get_db)):
@@ -37,6 +41,14 @@ async def list_documents(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Document).where(Document.is_active == True).order_by(Document.created_at.desc()))
     docs = result.scalars().all()
     return [DocumentResponse(id=d.id, title=d.title, content=d.content) for d in docs]
+
+@router.get("/stats", response_model=DocumentStatsResponse)
+async def get_document_stats(db: AsyncSession = Depends(get_db)):
+    count_result = await db.execute(select(func.count(Document.id)).where(Document.is_active == True))
+    total = count_result.scalar_one_or_none() or 0
+    last_result = await db.execute(select(func.max(Document.updated_at)).where(Document.is_active == True))
+    last_update = last_result.scalar_one_or_none()
+    return DocumentStatsResponse(total=total, last_update=last_update.isoformat() if last_update else None)
 
 @router.delete("/{document_id}")
 async def delete_document(document_id: int, db: AsyncSession = Depends(get_db)):

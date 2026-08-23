@@ -99,9 +99,14 @@ stages:
                 $(tag)
                 latest
 
+          - script: |
+              mkdir -p $(Build.ArtifactStagingDirectory)/manifests
+              cp -r infra/kubernetes/* $(Build.ArtifactStagingDirectory)/manifests/
+            displayName: 'Copy Kubernetes Manifests'
+
           - task: PublishBuildArtifacts@1
             inputs:
-              PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+              PathtoPublish: '$(Build.ArtifactStagingDirectory)/manifests'
               ArtifactName: 'manifests'
 
   - stage: DeployStaging

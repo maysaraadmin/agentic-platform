@@ -11,6 +11,11 @@ export interface StreamResponse {
   error?: string;
 }
 
+function getAuthHeaders(): Record<string, string> {
+  const token = localStorage.getItem('auth_token');
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
+
 export const streamChat = async (
   messages: ChatMessage[],
   onChunk: (chunk: string) => void,
@@ -22,12 +27,19 @@ export const streamChat = async (
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...getAuthHeaders(),
       },
       body: JSON.stringify({ messages }),
       signal,
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        onError('Unauthorized. Please log in.');
+        localStorage.removeItem('auth_token');
+        window.location.href = '/login';
+        return;
+      }
       onError(`HTTP error: ${response.status}`);
       return;
     }
@@ -71,7 +83,7 @@ export const streamChat = async (
 };
 
 export const fetchHealth = async (): Promise<{ status: string }> => {
-  const response = await fetch(`${API_URL}/api/v1/health`);
+  const response = await fetch(`${API_URL}/health`, { headers: getAuthHeaders() });
   if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
   return response.json();
 };

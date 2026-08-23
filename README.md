@@ -20,6 +20,12 @@ See [docs/architecture.md](docs/architecture.md) for the architecture diagram.
 4. Access API at `http://localhost:8000/docs`
 5. Access Frontend at `http://localhost:4200`
 
+### Local Development
+
+- `docker compose up -d` starts everything
+- For local frontend dev: `cd apps/frontend/host && npm start`
+- For local backend dev: `cd apps/backend && uvicorn src.main:app --reload`
+
 ## Run Tests
 
 ### Backend

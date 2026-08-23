@@ -1,0 +1,55 @@
+global:
+  environment: development
+  imageRegistry: myacr.azurecr.io
+
+backend:
+  replicaCount: 1
+  image:
+    repository: agentic-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  env:
+    - name: POSTGRES_HOST
+      value: postgres
+    - name: RABBITMQ_HOST
+      value: rabbitmq
+    - name: CORS_ORIGINS
+      value: "http://localhost:4200,http://localhost:3000"
+
+frontend:
+  replicaCount: 1
+  image:
+    repository: agentic-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+  env:
+    - name: NX_API_URL
+      value: "http://localhost:8000"
+
+mfe-chat:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: agentic-frontend
+    tag: latest
+
+mfe-dashboard:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: agentic-frontend
+    tag: latest

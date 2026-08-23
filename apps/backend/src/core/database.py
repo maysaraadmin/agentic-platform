@@ -18,8 +18,6 @@ Base = declarative_base()
 db_logger = logging.getLogger("sqlalchemy.engine")
 db_logger.setLevel(logging.WARNING)
 
-SQL_SERVER_CONNECTION_STRING = os.getenv("SQL_SERVER_CONNECTION_STRING", "")
-
 async def get_db() -> AsyncSession:
     async with AsyncSessionLocal() as session:
         yield session
