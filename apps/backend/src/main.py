@@ -52,7 +52,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(health.router, tags=["Health"])
+app.include_router(health.router, prefix="/health", tags=["Health"])
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])
 app.include_router(agent.router, prefix="/api/v1/agents", tags=["Agents"], dependencies=[Depends(get_current_active_user)])
 app.include_router(document.router, prefix="/api/v1/documents", tags=["Documents"], dependencies=[Depends(get_current_active_user)])

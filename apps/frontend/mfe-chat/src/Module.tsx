@@ -1,9 +1,9 @@
-import React from 'react';
-import { useChatStream } from '../hooks/useChatStream';
+import { FC } from 'react';
+import { useChatStream } from './hooks/useChatStream';
 import MessageList from './components/MessageList';
 import ChatInput from './components/ChatInput';
 
-const ChatModule: React.FC = () => {
+const ChatModule: FC = () => {
   const { messages, streamingContent, isStreaming, error, sendMessage } =
     useChatStream();
 

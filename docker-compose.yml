@@ -17,6 +17,7 @@ services:
 
   rabbitmq:
     image: rabbitmq:3-management
+    user: "rabbitmq"
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
@@ -36,6 +37,7 @@ services:
     environment:
       POSTGRES_HOST: postgres
       RABBITMQ_HOST: rabbitmq
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
       OLLAMA_HOST: http://host.docker.internal:11434
       OLLAMA_MODEL: llama3.2
     ports:

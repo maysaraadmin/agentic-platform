@@ -35,6 +35,10 @@ module.exports = {
   optimization: {
     splitChunks: { chunks: 'all' },
   },
+  externals: {
+    'mfe-chat/Module': 'mfeChat',
+    'mfe-dashboard/Module': 'mfeDashboard',
+  },
   plugins: [
     new ModuleFederationPlugin({
       name: 'host',

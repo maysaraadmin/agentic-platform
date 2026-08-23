@@ -1,9 +1,26 @@
 {
-  "extends": "./tsconfig.base.json",
   "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "mfe-chat/*": ["../mfe-chat/src/*"],
+      "mfe-dashboard/*": ["../mfe-dashboard/src/*"],
+      "shared/*": ["../shared/src/*"]
+    },
     "outDir": "dist",
     "rootDir": "."
   },
-  "include": ["apps/frontend/host/src/**/*"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules"]
 }
