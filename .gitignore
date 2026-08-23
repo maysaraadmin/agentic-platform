@@ -21,3 +21,12 @@ terraform.tfstate.backup
 .terraform
 .kube
 .kilocode
+# Secrets & credentials
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.yaml
+*secret*.yaml
+*secret*.yml
+*secret*.json
