@@ -3,15 +3,13 @@ const { ModuleFederationPlugin } = require('webpack').container;
 const path = require('path');
 
 module.exports = {
-  mode: 'development',
-  devtool: 'eval-source-map',
-  devServer: {
-    port: 4200,
-    host: '0.0.0.0',
-    historyApiFallback: true,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-    },
+  mode: 'production',
+  target: 'web',
+  entry: './src/main.tsx',
+  output: {
+    path: path.resolve(__dirname, 'dist'),
+    filename: 'host.js',
+    publicPath: 'auto',
   },
   resolve: {
     extensions: ['.tsx', '.ts', '.js'],
@@ -28,6 +26,9 @@ module.exports = {
         use: ['style-loader', 'css-loader'],
       },
     ],
+  },
+  optimization: {
+    splitChunks: { chunks: 'all' },
   },
   plugins: [
     new ModuleFederationPlugin({

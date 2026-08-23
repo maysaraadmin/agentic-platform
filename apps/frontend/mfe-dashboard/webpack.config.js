@@ -3,6 +3,8 @@ const { ModuleFederationPlugin } = require('webpack').container;
 const path = require('path');
 
 module.exports = {
+  mode: 'production',
+  target: 'web',
   entry: './src/main.tsx',
   output: {
     path: path.resolve(__dirname, 'dist'),
@@ -20,13 +22,6 @@ module.exports = {
         exclude: /node_modules/,
       },
     ],
-  },
-  devServer: {
-    port: 3002,
-    host: '0.0.0.0',
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-    },
   },
   plugins: [
     new ModuleFederationPlugin({

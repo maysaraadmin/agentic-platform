@@ -1,5 +1,6 @@
 import httpx
 import logging
+from fastapi import HTTPException
 
 logger = logging.getLogger(__name__)
 
@@ -13,14 +14,18 @@ class A2AClient:
     def __init__(self, agent: A2AAgent):
         self.agent = agent
 
-    async def send(self, query: str, **kwargs) -> dict:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{self.agent.endpoint}/a2a/invoke",
-                json={"query": query, **kwargs},
-            )
-            response.raise_for_status()
-            return response.json()
+    async def send(self, query: str, timeout: float = 30.0, **kwargs) -> dict:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            try:
+                response = await client.post(
+                    f"{self.agent.endpoint}/a2a/invoke",
+                    json={"query": query, **kwargs},
+                )
+                response.raise_for_status()
+                return response.json()
+            except httpx.HTTPError as exc:
+                logger.error("A2A request failed: %s", exc)
+                raise HTTPException(status_code=502, detail=f"A2A agent error: {exc}")
 
 
 class FinanceAgent(A2AAgent):
@@ -29,13 +34,17 @@ class FinanceAgent(A2AAgent):
 
     async def invoke(self, query: str) -> str:
         """Invoke the finance agent with a query."""
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{self.endpoint}/a2a/invoke",
-                json={"query": query, "agent_id": "finance-agent-001"}
-            )
-            response.raise_for_status()
-            return response.json().get("result", "No result")
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            try:
+                response = await client.post(
+                    f"{self.endpoint}/a2a/invoke",
+                    json={"query": query, "agent_id": "finance-agent-001"}
+                )
+                response.raise_for_status()
+                return response.json().get("result", "No result")
+            except httpx.HTTPError as exc:
+                logger.error("Finance agent request failed: %s", exc)
+                raise HTTPException(status_code=502, detail=f"Finance agent error: {exc}")
 
 
 class OrchestratorAgent:

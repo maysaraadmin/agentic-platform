@@ -10,6 +10,8 @@ A complete, open-source blueprint integrating AI agents, MCP, A2A, RAG, and micr
 - **Messaging**: RabbitMQ
 - **Infrastructure**: Kubernetes + ArgoCD + Azure DevOps
 
+See [docs/architecture.md](docs/architecture.md) for the architecture diagram.
+
 ## Getting Started
 
 1. Clone the repository
@@ -20,13 +22,26 @@ A complete, open-source blueprint integrating AI agents, MCP, A2A, RAG, and micr
 
 ## Run Tests
 
+### Backend
 ```bash
 cd apps/backend
 pytest
 ```
 
+### Frontend
+```bash
+cd apps/frontend/host
+npm test
+```
+
 ## Deploy
+
+See [docs/deployment.md](docs/deployment.md) for the full deployment guide.
 
 ```bash
 kubectl apply -f infra/argocd/application.yaml
 ```
+
+## Security
+
+**Never commit secrets to git.** Production secrets are stored in Azure Key Vault and synced to Kubernetes via External Secrets Operator. Always use `.env` files (ignored by git) for local development.

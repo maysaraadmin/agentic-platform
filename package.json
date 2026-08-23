@@ -5,11 +5,15 @@
     "start": "nx serve host",
     "build": "nx build host",
     "test": "nx test host",
-    "lint": "nx lint host",
+    "lint": "eslint apps/frontend/**/*.{ts,tsx}",
+    "format": "prettier --write \"apps/frontend/**/*.{ts,tsx}\"",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "backend:start": "cd apps/backend && uvicorn src.main:app --reload",
     "backend:test": "cd apps/backend && pytest"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.0.0"
   },
   "private": true
 }

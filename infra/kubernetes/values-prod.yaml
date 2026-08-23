@@ -1,0 +1,100 @@
+global:
+  environment: production
+
+postgres:
+  enabled: true
+  auth:
+    existingSecret: postgres-secret
+    secretKeys:
+      adminPasswordKey: password
+
+rabbitmq:
+  enabled: true
+  auth:
+    existingSecret: rabbitmq-secret
+    existingErlangSecretKey: erlang-cookie
+
+backend:
+  replicaCount: 3
+  image:
+    repository: myacr.azurecr.io/agentic-backend
+    tag: latest
+    pullPolicy: Always
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  env:
+    - name: POSTGRES_HOST
+      value: postgres
+    - name: RABBITMQ_HOST
+      value: rabbitmq
+    - name: CORS_ORIGINS
+      value: "https://agentic.example.com"
+    - name: SECRET_KEY
+      valueFrom:
+        secretKeyRef:
+          name: backend-secrets
+          key: secret-key
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+
+frontend:
+  replicaCount: 2
+  image:
+    repository: myacr.azurecr.io/agentic-frontend
+    tag: latest
+    pullPolicy: Always
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  env:
+    - name: NX_API_URL
+      value: "https://api.agentic.example.com"
+
+mfe-chat:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: myacr.azurecr.io/agentic-frontend
+    tag: latest
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+mfe-dashboard:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: myacr.azurecr.io/agentic-frontend
+    tag: latest
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
