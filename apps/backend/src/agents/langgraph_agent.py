@@ -1,17 +1,15 @@
-from typing import TypedDict, List, Annotated
-import operator
 import asyncio
-from langgraph.graph import StateGraph, END
-from langgraph.prebuilt import ToolExecutor
-from langchain_ollama import ChatOllama
-from langchain_community.embeddings import OllamaEmbeddings
-from langchain_community.vectorstores import PGVector
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
-from langchain_core.tools import tool
+import operator
 import os
+from typing import Annotated, TypedDict
+
+from langchain_community.vectorstores import PGVector
+from langchain_ollama import ChatOllama, OllamaEmbeddings
+from langgraph.graph import END, StateGraph
+
 
 class AgentState(TypedDict):
-    messages: Annotated[List[dict], operator.add]
+    messages: Annotated[list[dict], operator.add]
     context: str
 
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
@@ -33,37 +31,33 @@ vectorstore = PGVector(
     embedding_function=embeddings,
 )
 
-@tool
-def search_policies(query: str) -> str:
-    """Search company policies."""
-    return f"Policy results for '{query}': [Policy 1, Policy 2]"
-
-@tool
-def get_employee_info(employee_id: str) -> str:
-    """Get employee information."""
-    return f"Employee {employee_id}: John Doe, Engineering"
-
-tools = [search_policies, get_employee_info]
-tool_executor = ToolExecutor(tools)
 
 async def retrieve_node(state: AgentState) -> AgentState:
     """Retrieve relevant documents from the vector store."""
-    query = state["messages"][-1]["content"]
+    messages = state.get("messages", [])
+    if not messages:
+        state["context"] = ""
+        return state
+    query = messages[-1]["content"]
     docs = await asyncio.to_thread(vectorstore.similarity_search, query, k=3)
-    context = "\n".join([doc.page_content for doc in docs])
-    state["context"] = context
+    state["context"] = "\n".join(doc.page_content for doc in docs)
     return state
+
 
 async def generate_node(state: AgentState) -> AgentState:
     """Generate a response using the LLM and retrieved context."""
+    messages = state.get("messages", [])
+    if not messages:
+        return state
     context = state.get("context", "")
     prompt = f"""Use the following context to answer the user's question.
     Context: {context}
-    User: {state['messages'][-1]['content']}
+    User: {messages[-1]['content']}
     Assistant:"""
     response = await llm.ainvoke(prompt)
     state["messages"].append({"role": "assistant", "content": response.content})
     return state
+
 
 workflow = StateGraph(AgentState)
 workflow.add_node("retrieve", retrieve_node)
