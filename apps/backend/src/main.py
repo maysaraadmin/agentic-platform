@@ -1,32 +1,38 @@
-from fastapi import FastAPI, Depends, HTTPException, status
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import OAuth2AuthorizationCodeBearer
-from contextlib import asynccontextmanager
-from starlette.exceptions import HTTPException as StarletteHTTPException
 import logging
 import os
+from contextlib import asynccontextmanager
 
-from src.api import agent, document, health, conversations, auth
-from src.core.database import engine, Base
-from src.core.mcp_server import mcp_app
-from src.core.auth import get_current_active_user
-from src.core.rate_limit import limiter, _rate_limit_exceeded_handler
-from src.core.logging import setup_logging
+from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from starlette.responses import JSONResponse
+
+from src.api import agent, auth, conversations, document, health
+from src.core.auth import get_current_active_user
+from src.core.database import Base, engine
+from src.core.logging import setup_logging
+from src.core.mcp_server import mcp_app
+from src.core.rate_limit import limiter
 from src.services.rabbitmq import rabbitmq_service
 
 setup_logging()
 logger = logging.getLogger(__name__)
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    await rabbitmq_service.connect()
+    try:
+        await rabbitmq_service.connect()
+    except Exception:
+        logger.warning("RabbitMQ unavailable at startup; messaging features will be degraded")
     logger.info("Application startup complete.")
     yield
     await rabbitmq_service.close()
     logger.info("Application shutdown complete.")
+
 
 app = FastAPI(
     title="Agentic Enterprise API",
@@ -38,10 +44,12 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
     logger.exception("Unhandled exception: %s", exc)
-    return HTTPException(status_code=500, detail="Internal server error")
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+
 
 cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:4200,http://localhost:3000")
 app.add_middleware(
@@ -59,6 +67,7 @@ app.include_router(document.router, prefix="/api/v1/documents", tags=["Documents
 app.include_router(conversations.router, prefix="/api/v1/conversations", tags=["Conversations"], dependencies=[Depends(get_current_active_user)])
 
 app.mount("/mcp", mcp_app)
+
 
 @app.get("/")
 async def root():

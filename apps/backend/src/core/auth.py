@@ -1,21 +1,30 @@
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2AuthorizationCodeBearer
-from jose import JWTError, jwt
-from pydantic import BaseModel
+import logging
 import os
-from typing import Optional
+import secrets
 
-oauth2_scheme = OAuth2AuthorizationCodeBearer(
-    authorizationUrl="https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/authorize",
-    tokenUrl="https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token",
-)
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
+from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    SECRET_KEY = secrets.token_urlsafe(32)
+    logger.warning(
+        "SECRET_KEY not set: generated an ephemeral signing key. "
+        "Set SECRET_KEY in your environment for stable sessions in production."
+    )
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+
 
 class TokenData(BaseModel):
-    username: Optional[str] = None
-    roles: list[str] = []
+    username: str | None = None
+    roles: list[str] = Field(default_factory=list)
 
-SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-production")
-ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     credentials_exception = HTTPException(
@@ -26,15 +35,23 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
-        roles: list[str] = payload.get("roles", [])
         if username is None:
             raise credentials_exception
-        token_data = TokenData(username=username, roles=roles)
+        token_data = TokenData(username=username, roles=payload.get("roles", []))
     except JWTError:
         raise credentials_exception
-    return {"id": token_data.username, "name": token_data.username, "roles": token_data.roles}
+    return {
+        "id": token_data.username,
+        "name": token_data.username,
+        "roles": token_data.roles,
+        "active": bool(payload.get("active", True)),
+    }
+
 
 async def get_current_active_user(current_user: dict = Depends(get_current_user)) -> dict:
-    if not current_user:
-        raise HTTPException(status_code=400, detail="Inactive user")
+    if not current_user.get("active"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User is not active",
+        )
     return current_user
