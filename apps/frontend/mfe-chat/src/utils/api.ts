@@ -1,4 +1,4 @@
-const API_URL = process.env.NX_API_URL || 'http://localhost:8000';
+import { API_URL, getAuthHeaders } from 'shared/auth';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -9,11 +9,6 @@ export interface StreamResponse {
   chunk?: string;
   done?: boolean;
   error?: string;
-}
-
-function getAuthHeaders(): Record<string, string> {
-  const token = localStorage.getItem('auth_token');
-  return token ? { 'Authorization': `Bearer ${token}` } : {};
 }
 
 export const streamChat = async (
