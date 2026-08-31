@@ -1,3 +1,4 @@
+import 'shared/styles.css';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import Module from './Module';

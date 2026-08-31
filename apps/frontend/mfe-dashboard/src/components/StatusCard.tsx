@@ -7,24 +7,25 @@ interface StatusCardProps {
 }
 
 const StatusCard: React.FC<StatusCardProps> = ({ title, status, isLoading }) => {
+  const isHealthy = status?.toLowerCase() === 'healthy' || status?.toLowerCase() === 'online';
+
   return (
-    <div
-      style={{
-        border: '1px solid #ccc',
-        padding: '20px',
-        borderRadius: '8px',
-        backgroundColor: '#fff',
-      }}
-    >
-      <h3>{title}</h3>
-      <p>
-        Status:{' '}
-        {isLoading ? (
-          <span style={{ color: '#999' }}>Loading...</span>
-        ) : (
-          <span style={{ color: '#28a745', fontWeight: 'bold' }}>{status}</span>
-        )}
-      </p>
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '14px 16px',
+      borderRadius: 'var(--radius-md)',
+      backgroundColor: isHealthy ? '#f0fdf4' : '#fef2f2',
+    }}>
+      <span style={{ fontSize: '14px', color: 'var(--color-text)' }}>{title}</span>
+      {isLoading ? (
+        <div className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px' }} />
+      ) : (
+        <span className={`badge ${isHealthy ? 'badge-success' : 'badge-danger'}`}>
+          {status || 'Unknown'}
+        </span>
+      )}
     </div>
   );
 };
