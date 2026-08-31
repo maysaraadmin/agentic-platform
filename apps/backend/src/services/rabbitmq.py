@@ -1,14 +1,15 @@
-import aio_pika
-import json
 import asyncio
+import json
 import logging
 import os
-from typing import Callable, Any
+from collections.abc import Callable
+
+import aio_pika
 
 logger = logging.getLogger(__name__)
 
 class RabbitMQService:
-    def __init__(self, url: str = None):
+    def __init__(self, url: str | None = None):
         self.url = url or os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
         self.connection = None
         self.channel = None
@@ -30,11 +31,11 @@ class RabbitMQService:
     async def publish(self, queue_name: str, message: dict):
         if not self.channel:
             await self.connect()
-        queue = await self.channel.declare_queue(queue_name, durable=True)
-        await queue.publish(
-            aio_pika.Message(body=json.dumps(message).encode(), delivery_mode=aio_pika.DeliveryMode.PERSISTENT)
+        await self.channel.default_exchange.publish(
+            aio_pika.Message(body=json.dumps(message).encode(), delivery_mode=aio_pika.DeliveryMode.PERSISTENT),
+            routing_key=queue_name,
         )
-        logger.info("Published to %s: %s", queue_name, message)
+        logger.info("Published message to %s", queue_name)
 
     async def consume(self, queue_name: str, callback: Callable):
         if not self.channel:

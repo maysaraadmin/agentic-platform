@@ -1,16 +1,15 @@
-from mcp.server.fastmcp import FastMCP
-from mcp.server.sse import SseServerTransport
-from starlette.applications import Starlette
-from starlette.routing import Mount, Route
 import asyncio
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_
-from src.services.rabbitmq import rabbitmq_service
+
+from mcp.server.fastmcp import FastMCP
+from sqlalchemy import select
+
+from src.agents.langgraph_agent import vectorstore
 from src.core.database import get_db
 from src.models.models import Document, Employee
-from src.agents.langgraph_agent import vectorstore
+from src.services.rabbitmq import rabbitmq_service
 
 mcp = FastMCP("Enterprise Tools")
+
 
 @mcp.tool()
 async def get_company_policy(policy_name: str) -> str:
@@ -26,6 +25,7 @@ async def get_company_policy(policy_name: str) -> str:
         if doc:
             return f"Policy: {doc.title}\n\n{doc.content}"
         return f"No policy found matching '{policy_name}'"
+
 
 @mcp.tool()
 async def fetch_employee_data(employee_id: str) -> dict:
@@ -44,11 +44,13 @@ async def fetch_employee_data(employee_id: str) -> dict:
             }
         return {"error": f"Employee {employee_id} not found"}
 
+
 @mcp.tool()
 async def send_notification(user_id: str, message: str) -> str:
     """Send a notification to a user via the message queue."""
     await rabbitmq_service.publish("notification_queue", {"user_id": user_id, "message": message})
     return f"Notification sent to {user_id}"
+
 
 @mcp.tool()
 async def search_documents(query: str, top_k: int = 5) -> list:
@@ -64,23 +66,4 @@ async def search_documents(query: str, top_k: int = 5) -> list:
     ]
 
 
-sse = SseServerTransport("/messages/")
-
-
-async def handle_sse(request):
-    async with sse.connect_sse(
-        request.scope, request.receive, request._send
-    ) as streams:
-        await mcp._mcp_server.run(
-            streams[0],
-            streams[1],
-            mcp._mcp_server.create_initialization_options(),
-        )
-
-
-mcp_app = Starlette(
-    routes=[
-        Route("/sse", endpoint=handle_sse),
-        Mount("/messages/", app=sse.handle_post_message),
-    ],
-)
+mcp_app = mcp.sse_app()

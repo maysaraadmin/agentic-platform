@@ -1,7 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+import os
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, update, delete
+
 from src.core.database import get_db
 from src.models.models import Document
 from src.services.ingestion import ingest_file

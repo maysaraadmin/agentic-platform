@@ -1,45 +1,34 @@
-import os
-import json
 import asyncio
 import logging
-from typing import List
-from langchain_community.vectorstores import PGVector
-from langchain_ollama import OllamaEmbeddings
+
 from langchain_core.documents import Document
+
+from src.agents.langgraph_agent import vectorstore
 
 logger = logging.getLogger(__name__)
 
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
-POSTGRES_USER = os.getenv("POSTGRES_USER", "postgres")
-POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "password")
-POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
-POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
-POSTGRES_DB = os.getenv("POSTGRES_DB", "agentic_db")
 
-embeddings = OllamaEmbeddings(base_url=OLLAMA_HOST, model=OLLAMA_MODEL)
-connection_string = f"postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
-vectorstore = PGVector(
-    collection_name="company_docs",
-    connection_string=connection_string,
-    embedding_function=embeddings,
-)
-
-
-def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> List[str]:
+def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> list[str]:
     """Split text into overlapping chunks."""
-    chunks = []
+    if chunk_size <= 0:
+        raise ValueError("chunk_size must be positive")
+    overlap = max(0, min(overlap, chunk_size - 1))
+    chunks: list[str] = []
     start = 0
-    while start < len(text):
+    text_len = len(text)
+    while start < text_len:
         end = start + chunk_size
         chunk = text[start:end]
         if chunk.strip():
             chunks.append(chunk)
-        start = end - overlap
+        next_start = end - overlap
+        if next_start <= start:
+            next_start = start + chunk_size
+        start = next_start
     return chunks
 
 
-async def ingest_file(filename: str, content: str, metadata: dict = None) -> int:
+async def ingest_file(filename: str, content: str, metadata: dict | None = None) -> int:
     """Ingest a file into the vector store. Returns number of chunks created."""
     chunks = chunk_text(content)
     if not chunks:
