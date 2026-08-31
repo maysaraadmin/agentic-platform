@@ -5,15 +5,16 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
     "strict": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "types": ["node"],
     "baseUrl": ".",
     "paths": {
-      "shared/*": ["../../shared/src/*"]
+      "shared/*": ["../shared/src/*"]
     }
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules"]
+  "include": ["src/**/*", "../shared/src/**/*"],
+  "exclude": ["node_modules", "**/*.test.ts", "**/*.test.tsx"]
 }
