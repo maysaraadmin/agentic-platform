@@ -1,4 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { decodeJwtPayload } from 'shared/auth';
+
+declare const process: { env: Record<string, string | undefined> };
 
 interface AuthContextType {
   user: { id: string; name: string; roles: string[] } | null;
@@ -16,17 +19,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        setUser({
-          id: payload.sub || payload.username || 'user',
-          name: payload.name || payload.sub || 'User',
-          roles: payload.roles || ['user']
-        });
-      } catch {
+      const payload = decodeJwtPayload(token);
+      const expired = payload?.exp !== undefined && payload.exp * 1000 < Date.now();
+      if (!payload || expired) {
         localStorage.removeItem('auth_token');
         setToken(null);
+        return;
       }
+      setUser({
+        id: payload.sub || payload.username || 'user',
+        name: payload.name || payload.sub || 'User',
+        roles: payload.roles || ['user'],
+      });
     }
   }, [token]);
 

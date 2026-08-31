@@ -1,40 +1,19 @@
-import { lazy, Suspense, FC, ReactNode } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import LoginPage from './pages/LoginPage';
+import { FC } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
-const ChatModule = lazy(() => import('mfeChat/Module'));
-const DashboardModule = lazy(() => import('mfeDashboard/Module'));
-
-const queryClient = new QueryClient();
-
-const ProtectedRoute: FC<{ children: ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-  return <>{children}</>;
-};
-
-function App() {
+const App: FC = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
-          <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>}>
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/" element={
-                <ProtectedRoute><DashboardModule /></ProtectedRoute>
-              } />
-              <Route path="/chat" element={
-                <ProtectedRoute><ChatModule /></ProtectedRoute>
-              } />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </AuthProvider>
-    </QueryClientProvider>
+    <BrowserRouter>
+      <div style={{ padding: 40, fontFamily: 'Arial' }}>
+        <h1 style={{ color: 'blue' }}>Agentic Platform</h1>
+        <p>React is working!</p>
+        <Routes>
+          <Route path="/" element={<div>Dashboard Page</div>} />
+          <Route path="/chat" element={<div>Chat Page</div>} />
+        </Routes>
+      </div>
+    </BrowserRouter>
   );
-}
+};
 
 export default App;
