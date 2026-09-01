@@ -57,10 +57,37 @@ services:
 
   frontend:
     build:
-      context: ./apps/frontend/host
-      dockerfile: Dockerfile
+      context: ./apps/frontend
+      dockerfile: host/Dockerfile
+      args:
+        MFE_CHAT_URL: /mfe-chat/remoteEntry.js
+        MFE_DASHBOARD_URL: /mfe-dashboard/remoteEntry.js
+        NX_API_URL: http://backend:8000
     ports:
       - "4200:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+      mfe-chat:
+        condition: service_started
+      mfe-dashboard:
+        condition: service_started
+    environment:
+      - NX_API_URL=http://backend:8000
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  mfe-chat:
+    build:
+      context: ./apps/frontend
+      dockerfile: mfe-chat/Dockerfile
+      args:
+        NX_API_URL: http://backend:8000
+    ports:
+      - "3001:80"
     depends_on:
       backend:
         condition: service_healthy
@@ -72,30 +99,19 @@ services:
       timeout: 10s
       retries: 3
 
-  mfe-chat:
-    build:
-      context: ./apps/frontend/mfe-chat
-      dockerfile: Dockerfile
-    ports:
-      - "3001:80"
-    depends_on:
-      backend:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost/ || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
   mfe-dashboard:
     build:
-      context: ./apps/frontend/mfe-dashboard
-      dockerfile: Dockerfile
+      context: ./apps/frontend
+      dockerfile: mfe-dashboard/Dockerfile
+      args:
+        NX_API_URL: http://backend:8000
     ports:
       - "3002:80"
     depends_on:
       backend:
         condition: service_healthy
+    environment:
+      - NX_API_URL=http://backend:8000
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost/ || exit 1"]
       interval: 30s

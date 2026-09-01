@@ -1,18 +1,29 @@
-import { FC } from 'react';
+import { FC, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Layout from './components/Layout';
+import LoginPage from './pages/LoginPage';
+import { AuthProvider } from './contexts/AuthContext';
+
+const DashboardModule = lazy(() => import('mfe-dashboard/Module'));
+const ChatModule = lazy(() => import('mfe-chat/Module'));
 
 const App: FC = () => {
   return (
-    <BrowserRouter>
-      <div style={{ padding: 40, fontFamily: 'Arial' }}>
-        <h1 style={{ color: 'blue' }}>Agentic Platform</h1>
-        <p>React is working!</p>
-        <Routes>
-          <Route path="/" element={<div>Dashboard Page</div>} />
-          <Route path="/chat" element={<div>Chat Page</div>} />
-        </Routes>
-      </div>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <Layout>
+          <Suspense fallback={<div>Loading...</div>}>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/" element={<DashboardModule />} />
+              <Route path="/chat" element={<ChatModule />} />
+              <Route path="/documents" element={<div>Documents Page</div>} />
+              <Route path="/history" element={<div>History Page</div>} />
+            </Routes>
+          </Suspense>
+        </Layout>
+      </BrowserRouter>
+    </AuthProvider>
   );
 };
 

@@ -1,9 +1,19 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { ModuleFederationPlugin } = require('webpack').container;
+const { DefinePlugin } = require('webpack');
 const path = require('path');
+const fs = require('fs');
 
 const isProduction = process.env.NODE_ENV === 'production';
+const nxApiUrl = process.env.NX_API_URL || 'http://localhost:8000';
 const hostNodeModules = path.resolve(__dirname, '../host/node_modules');
+
+const sharedAliases = {};
+if (fs.existsSync(hostNodeModules)) {
+  sharedAliases['ts-loader'] = path.resolve(hostNodeModules, 'ts-loader');
+  sharedAliases['typescript'] = path.resolve(hostNodeModules, 'typescript');
+  sharedAliases['webpack'] = path.resolve(hostNodeModules, 'webpack');
+}
 
 module.exports = {
   mode: isProduction ? 'production' : 'development',
@@ -18,9 +28,7 @@ module.exports = {
     extensions: ['.tsx', '.ts', '.js'],
     alias: {
       shared: path.resolve(__dirname, '../shared/src'),
-      'ts-loader': path.resolve(hostNodeModules, 'ts-loader'),
-      typescript: path.resolve(hostNodeModules, 'typescript'),
-      webpack: path.resolve(hostNodeModules, 'webpack'),
+      ...sharedAliases,
     },
   },
   module: {
@@ -49,6 +57,10 @@ module.exports = {
         '@tanstack/react-query': { singleton: true, requiredVersion: '^5.0.0' },
         axios: { singleton: true, requiredVersion: '^1.0.0' },
       },
+    }),
+    new DefinePlugin({
+      'process.env.NX_API_URL': JSON.stringify(nxApiUrl),
+      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
     }),
     new HtmlWebpackPlugin({
       template: './src/index.html',

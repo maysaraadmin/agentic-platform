@@ -1,13 +1,16 @@
 FROM node:20-alpine AS builder
-WORKDIR /app
-COPY package.json package-lock.json* ./
+WORKDIR /app/mfe-chat
+COPY mfe-chat/package.json mfe-chat/package-lock.json* ./
 RUN npm install --silent --include=dev
-COPY . .
+COPY shared/ ../shared
+COPY mfe-chat/ ./
+ARG NX_API_URL=http://localhost:8000
+ENV NX_API_URL=$NX_API_URL
 RUN npm run build
 
 FROM nginx:alpine
 RUN apk add --no-cache wget
-COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/mfe-chat/dist /usr/share/nginx/html
+COPY mfe-chat/nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
